@@ -13,19 +13,15 @@ This repository contains the source code for Osdag bridge component of [Osdag](h
 OsdagBridge/
 ├── docs/
 ├── examples/
-├── ResourceFiles/
-├── src/
-│   └── osdagbridge/
-│       ├── cli/               # Command-line interface
-│       ├── core/              # Core logic including analysis, solvers, codes, and components
-│       │   ├── bridge_components/ # Reusable bridge components
-│       │   └── bridge_types/      # Implementations for specific bridge types
-│       └── desktop/           # PySide6 GUI
-├── tests/                     # Unit and integration tests
-├── tools/                     # Utility scripts
-└── web/                       # Django + React web stack
-    ├── backend/
-    └── frontend/
+├── tests/
+└── src/
+    └── osdagbridge/
+        ├── core/              # Analysis, design, IO, solvers, codes
+        ├── bridge_types/      # Plate girder, box girder, truss
+        ├── bridge_components/ # Reusable components
+        ├── cli/               # Command-line interface
+        ├── desktop/           # PySide6 GUI
+        └── web/               # Django + React web stack
 ```
 ## Installation
 
@@ -76,13 +72,13 @@ python -m osdagbridge.desktop
 Backend:
 
 ```bash
-python web/backend/manage.py runserver
+python src/osdagbridge/web/backend/manage.py runserver
 ```
 
 Frontend:
 
 ```bash
-cd web/frontend
+cd src/osdagbridge/web/frontend
 npm install
 npm start
 ```
@@ -106,11 +102,11 @@ Continuous integration runs automatically through GitHub Actions (`.github/workf
 ### Key Code Locations
 - Core logic: `src/osdagbridge/core/`
 - Codes & standards: `src/osdagbridge/core/utils/codes/`
-- Bridge types: `src/osdagbridge/core/bridge_types/`
-- Components: `src/osdagbridge/core/bridge_components/`
+- Bridge types: `src/osdagbridge/bridge_types/`
+- Components: `src/osdagbridge/bridge_components/`
 - CLI: `src/osdagbridge/cli/`
 - Desktop GUI: `src/osdagbridge/desktop/`
-- Web backend/frontend: `web/`
+- Web backend/frontend: `src/osdagbridge/web/`
 
 ### Contribution Workflow
 1. Fork the repository  
