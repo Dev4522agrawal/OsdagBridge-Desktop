@@ -1,128 +1,59 @@
-# Osdag Bridge
+# OsdagBridge-Desktop
+
+Desktop Graphical User Interface (GUI), 3D CAD visualizer, and standalone installer package for [OsdagBridge](https://github.com/osdagbridge).
+
 ## Overview
-This repository contains the source code for Osdag bridge component of [Osdag](https://github.com/osdag-admin/Osdag).
-## Technical Stack
 
-- **Framework**: PySide6 (Qt for Python)
-- **Language**: Python 3.8+
-- **Architecture**: Model-View pattern with modular design
+`osdagbridge-desktop` provides the interactive graphical application for steel bridge analysis and design according to Indian Standard codes (IRC:5, IRC:6, IRC:22, IRC:24, IRC:112, IS 800).
 
-## Project Structure
+It interfaces seamlessly with `osdagbridge-core`, which provides the underlying grillage analysis engine, finite element solvers (OpenSees), code validation checks, and LaTeX design report generators.
 
-```
-OsdagBridge/
-├── docs/
-├── examples/
-├── tests/
-└── src/
-    └── osdagbridge/
-        ├── core/              # Analysis, design, IO, solvers, codes
-        ├── bridge_types/      # Plate girder, box girder, truss
-        ├── bridge_components/ # Reusable components
-        ├── cli/               # Command-line interface
-        ├── desktop/           # PySide6 GUI
-        └── web/               # Django + React web stack
-```
+## Key Features
+
+- **Interactive Bridge Modeler**: Intuitive docks and dialogs for bridge geometry, materials, support conditions, cross bracings, and vehicular load placement.
+- **3D CAD Visualization**: Real-time 3D rendering of plate girder bridges, diaphragms, shear studs, and stiffeners powered by Open CASCADE (`pythonocc-core`).
+- **Results & Plots**: Comprehensive 2D bending moment, shear force, deflection, and stress envelope diagrams (`matplotlib`).
+- **Location Mapping**: Indian seismic and wind zone mapping using OpenStreetMap tile rendering.
+- **Standalone Installer**: Fully packaged installer generation powered by Conda Constructor.
+
 ## Installation
 
-### Prerequisites
-- Python 3.8 or higher
-- pip package manager
-
-### Setup
-
-1. Clone the repository:
-```bash
-git clone https://github.com/garvit000/osdag_bridge.git
-cd osdag_bridge
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-### Dependencies
-```
-PySide6>=6.5.0
-```
-## Usage
-
-### Running the Application
-
-Run as a module from src directory:
-```bash
-python -m osbridge.template_page
-```
-
-Generate a report:
+### Via Conda
 
 ```bash
-osdagbridge report project.yaml report.pdf
+conda install -c gsrathore -c osdag -c geompy -c conda-forge osdagbridge-desktop
 ```
 
-### Desktop Application
+### Launching the Application
+
+Once installed, simply run:
 
 ```bash
-python -m osdagbridge.desktop
+osdagbridge
 ```
 
-### Web Application
-
-Backend:
+## Development Setup
 
 ```bash
-python src/osdagbridge/web/backend/manage.py runserver
+# Clone the repository
+git clone https://github.com/osdagbridge/OsdagBridge-Desktop.git
+cd OsdagBridge-Desktop
+
+# Create and activate development environment
+conda env create -f environment.yaml
+conda activate osb-desktop
+
+# Install in editable mode
+pip install -e . --no-deps
+
+# Run the app
+osdagbridge
 ```
 
-Frontend:
+## Architecture
 
-```bash
-cd src/osdagbridge/web/frontend
-npm install
-npm start
-```
-
----
-
-## Testing
-
-Run the complete test suite:
-
-```bash
-pytest -q
-```
-
-Continuous integration runs automatically through GitHub Actions (`.github/workflows/ci.yml`).
-
----
-
-## Development Guidelines
-
-### Key Code Locations
-- Core logic: `src/osdagbridge/core/`
-- Codes & standards: `src/osdagbridge/core/utils/codes/`
-- Bridge types: `src/osdagbridge/bridge_types/`
-- Components: `src/osdagbridge/bridge_components/`
-- CLI: `src/osdagbridge/cli/`
-- Desktop GUI: `src/osdagbridge/desktop/`
-- Web backend/frontend: `src/osdagbridge/web/`
-
-### Contribution Workflow
-1. Fork the repository  
-2. Create a feature branch  
-3. Ensure all tests pass (`pytest`)  
-4. Submit a pull request
-
----
-
-## Acknowledgements
-
-OsdagBridge is part of the Osdag project, promoting open-source tools for steel design education, research, and practice.
-
----
+osdagbridge-desktop provides the osdagbridge_desktop graphical user interface and 3D visualization layer, consuming osdagbridge-core for computational analysis, design engines, and databases.
 
 ## License
 
-This project is licensed under the MIT License.  
-See the `LICENSE` file for full details.
+GNU Lesser General Public License v3 or later (LGPLv3+).
