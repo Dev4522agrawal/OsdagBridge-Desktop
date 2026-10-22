@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator, QIntValidator
-
+from osdagbridge_desktop.ui.dialogs.additional_input.widget_map import DIRECT_WIDGET_MAP
 from osdagbridge_core.utils.common import *
 
 ADDITIONAL_INPUTS_SCROLL_STYLE = """
@@ -820,7 +820,8 @@ class UIBuilder(QWidget):
             return widget
 
         elif ftype == TYPE_DIRECT_WIDGET:
-            cls = field_def.get("widget_class")
+            key = field_def.get("id")
+            cls = DIRECT_WIDGET_MAP.get(key)
             if cls is None:
                 return QWidget()
 
@@ -1448,7 +1449,8 @@ class UIBuilder(QWidget):
         for tab_def in tabs_def:
             title        = tab_def.get("title", "")
             schema       = tab_def.get("schema")
-            widget_class = tab_def.get("widget_class")
+            key          = tab_def.get("id")
+            widget_class = DIRECT_WIDGET_MAP.get(key)
             is_disbled   = tab_def.get("disable", False)
 
             if widget_class:
