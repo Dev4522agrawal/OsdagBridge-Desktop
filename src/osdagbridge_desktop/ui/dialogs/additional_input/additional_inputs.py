@@ -283,9 +283,14 @@ class AdditionalInputs(QDialog):
                             text = f"{float(value):.2e}"
                 except (ValueError, TypeError):
                     text = str(value)
+
                 widget.blockSignals(True)
                 widget.setText(text)
                 widget.blockSignals(False)
+
+                # If the no. of girder is changed in default, update the connecting fields
+                if name == KEY_TS_NO_OF_GIRDERS:
+                    widget.editingFinished.emit()
 
             elif isinstance(widget, QComboBox):
                 widget.blockSignals(True)
