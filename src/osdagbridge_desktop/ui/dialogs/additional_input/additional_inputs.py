@@ -1087,7 +1087,7 @@ class AdditionalInputs(QDialog):
                 variant, post_spacing=spacing_mm
             )["total_load_kN_per_m"]
             return {
-                KEY_MD_WIDTH:  f"{geom['kerb_bottom_width'] / 1000:.3f}",
+                KEY_MD_WIDTH:  f"{geom[KEY_MD_WIDTH] / 1000:.3f}",
                 KEY_MD_HEIGHT: f"{(geom['post_height'] + geom['kerb_height']) / 1000:.3f}",
                 KEY_MD_LOAD:   f"{load:.2f}",
             }
@@ -1494,8 +1494,15 @@ class AdditionalInputs(QDialog):
         type_w = self.findChild(QComboBox, KEY_MP_GIRDER_TYPE)
         is_rolled = type_w is not None and type_w.currentText().strip().lower() == "rolled"
 
+        from osdagbridge_core.bridge_types.plate_girder.initial_sizing import (
+            SECTION_DERIVED_KEYS, sync_member_section,
+        )
         for key in self._MEMBER_FIELD_KEYS:
             if is_rolled and key in self._ROLLED_SIZE_KEYS:
+                continue
+            # Welded section properties are display output of the dimensions;
+            # they are re-derived below, never persisted from the widget text.
+            if not is_rolled and key in SECTION_DERIVED_KEYS:
                 continue
             w = self.findChild(QWidget, key)
 
@@ -1534,6 +1541,11 @@ class AdditionalInputs(QDialog):
                             self.working_input_dict[key + suffix + ".value"] = text
                 else:
                     print(f"  [SAVE] {key} — widget not found: {type(w)}")
+
+        # Keep web depth and section properties consistent with the dimensions
+        # just saved (same helper the design and defaults use).
+        if not is_rolled:
+            sync_member_section(self.working_input_dict, suffix, unit="mm", precision=8)
 
     def _load_member_fields(self, gi: int, mi: int) -> None:  # utility: restores Girder Details widgets from working_input_dict G{i}.M{j} keys
         #  We firstly load all values in block mode and collect all widgets
@@ -1830,62 +1842,49 @@ class AdditionalInputs(QDialog):
         }
 
     def _compute_welded_section_properties(self, working_input_dict: dict) -> dict:  # compute: derives welded I-section properties from flange/web dimensions
-        from osdagbridge_core.bridge_types.plate_girder.initial_sizing import BridgeConfigurationSolver
+        from osdagbridge_core.bridge_types.plate_girder.initial_sizing import member_section_from_dims
 
-        def _to_m(key: str) -> float:
+        def _mm(key: str) -> float:
             val = working_input_dict.get(key)
             if val is None or isinstance(val, (dict, list)):
                 return 0.0
             try:
-                return float(val) / 1000.0
+                return float(val)
             except (ValueError, TypeError):
                 return 0.0
 
-        depth_m  = _to_m(KEY_MP_GIRDER_DEPTH)
-        b_top_m  = _to_m(KEY_MP_GIRDER_TOP_FLANGE_WIDTH)
-        b_bot_m  = _to_m(KEY_MP_GIRDER_BOTTOM_FLANGE_WIDTH)
-        tf_top_m = _to_m(KEY_MP_GIRDER_TOP_FLANGE_THICKNESS)
-        tf_bot_m = _to_m(KEY_MP_GIRDER_BOTTOM_FLANGE_THICKNESS)
-        tw_m     = _to_m(KEY_MP_GIRDER_WEB_THICKNESS)
+        depth   = _mm(KEY_MP_GIRDER_DEPTH)
+        b_top   = _mm(KEY_MP_GIRDER_TOP_FLANGE_WIDTH)
+        b_bot   = _mm(KEY_MP_GIRDER_BOTTOM_FLANGE_WIDTH)
+        tf_top  = _mm(KEY_MP_GIRDER_TOP_FLANGE_THICKNESS)
+        tf_bot  = _mm(KEY_MP_GIRDER_BOTTOM_FLANGE_THICKNESS)
+        tw      = _mm(KEY_MP_GIRDER_WEB_THICKNESS)
 
-        if not depth_m or not b_top_m:
+        # A symmetric girder has no separate bottom flange input: mirror the top.
+        # Any bottom value the user did enter is used as shown.
+        symmetry = str(working_input_dict.get(KEY_MP_GIRDER_SYMMETRY) or "Girder Symmetric").lower()
+        if "unsymmetric" not in symmetry:
+            b_bot  = b_bot or b_top
+            tf_bot = tf_bot or tf_top
+
+        # Same equations and same dimensions the design uses (no preliminary
+        # sizing, no span fallback).
+        if min(depth, b_top, b_bot, tf_top, tf_bot, tw) <= 0.0 or depth - tf_top - tf_bot <= 0.0:
             return {}
+        result = member_section_from_dims(
+            D=depth, bf_top=b_top, tf_top=tf_top, bf_bot=b_bot, tf_bot=tf_bot, tw=tw, unit="mm",
+        )
 
-        try:
-            span_m = float(working_input_dict.get(KEY_MP_GD_TOTAL_SPAN) or 30.0)
-        except (ValueError, TypeError):
-            span_m = 30.0
-
-        symmetry = str(working_input_dict.get(KEY_MP_GIRDER_SYMMETRY) or "Girder Symmetric")
-
-        try:
-            result = BridgeConfigurationSolver(carriageway_width=1.0).compute_section_properties(
-                span=span_m,
-                symmetry=symmetry,
-                user_depth=depth_m,
-                B_top=b_top_m,
-                B_bot=b_bot_m,
-                t_f_top=tf_top_m,
-                t_f_bot=tf_bot_m,
-                t_w=tw_m,
-            )
-        except Exception:
-            return {}
-
-        # Outputs are already in SI (m², m⁴, m³, m⁶) — same as UI labels
+        # Outputs are in SI (m², m⁴, m³, m⁶) — same as UI labels
         return {
-            KEY_MP_GIRDER_MASS:                f"{result['Mass']:.2e}",
-            KEY_MP_GIRDER_SECTIONAL_AREA:      f"{result['Area']:.2e}",
-            KEY_MP_GIRDER_SECTIONAL_IZ:        f"{result['I_z']:.2e}",
-            KEY_MP_GIRDER_SECTIONAL_IY:        f"{result['I_y']:.2e}",
-            KEY_MP_GIRDER_RADIUS_GYRATION_Z:   f"{result['r_z']:.2e}",
-            KEY_MP_GIRDER_RADIUS_GYRATION_Y:   f"{result['r_y']:.2e}",
-            KEY_MP_GIRDER_ELASTIC_MODULUS_ZZ:  f"{result['Z_ez']:.2e}",
-            KEY_MP_GIRDER_ELASTIC_MODULUS_ZY:  f"{result['Z_ey']:.2e}",
-            KEY_MP_GIRDER_PLASTIC_MODULUS_ZUZ: f"{result['Z_pz']:.2e}",
-            KEY_MP_GIRDER_PLASTIC_MODULUS_ZUY: f"{result['Z_py']:.2e}",
-            KEY_MP_GIRDER_TORSION_CONSTANT_IT: f"{result['I_t']:.2e}",
-            KEY_MP_GIRDER_WARPING_CONSTANT_IW: f"{result['I_w']:.2e}",
+            key: f"{result[key]:.2e}" for key in (
+                KEY_MP_GIRDER_MASS, KEY_MP_GIRDER_SECTIONAL_AREA,
+                KEY_MP_GIRDER_SECTIONAL_IZ, KEY_MP_GIRDER_SECTIONAL_IY,
+                KEY_MP_GIRDER_RADIUS_GYRATION_Z, KEY_MP_GIRDER_RADIUS_GYRATION_Y,
+                KEY_MP_GIRDER_ELASTIC_MODULUS_ZZ, KEY_MP_GIRDER_ELASTIC_MODULUS_ZY,
+                KEY_MP_GIRDER_PLASTIC_MODULUS_ZUZ, KEY_MP_GIRDER_PLASTIC_MODULUS_ZUY,
+                KEY_MP_GIRDER_TORSION_CONSTANT_IT, KEY_MP_GIRDER_WARPING_CONSTANT_IW,
+            )
         }
 
     # ── Stiffener Details Sub-Tab ─────────────────────────────────────────────────────────────
