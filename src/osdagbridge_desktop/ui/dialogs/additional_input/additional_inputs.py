@@ -1494,15 +1494,8 @@ class AdditionalInputs(QDialog):
         type_w = self.findChild(QComboBox, KEY_MP_GIRDER_TYPE)
         is_rolled = type_w is not None and type_w.currentText().strip().lower() == "rolled"
 
-        from osdagbridge_core.bridge_types.plate_girder.initial_sizing import (
-            SECTION_DERIVED_KEYS, sync_member_section,
-        )
         for key in self._MEMBER_FIELD_KEYS:
             if is_rolled and key in self._ROLLED_SIZE_KEYS:
-                continue
-            # Welded section properties are display output of the dimensions;
-            # they are re-derived below, never persisted from the widget text.
-            if not is_rolled and key in SECTION_DERIVED_KEYS:
                 continue
             w = self.findChild(QWidget, key)
 
@@ -1542,10 +1535,6 @@ class AdditionalInputs(QDialog):
                 else:
                     print(f"  [SAVE] {key} — widget not found: {type(w)}")
 
-        # Keep web depth and section properties consistent with the dimensions
-        # just saved (same helper the design and defaults use).
-        if not is_rolled:
-            sync_member_section(self.working_input_dict, suffix, unit="mm", precision=8)
 
     def _load_member_fields(self, gi: int, mi: int) -> None:  # utility: restores Girder Details widgets from working_input_dict G{i}.M{j} keys
         #  We firstly load all values in block mode and collect all widgets
